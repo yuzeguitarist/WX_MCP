@@ -63,4 +63,4 @@ echo ""
 # ─── Run setup wizard ────────────────────────────
 print_step "启动配置向导..."
 echo ""
-exec bun run setup.ts
+bun run setup.ts </dev/tty
