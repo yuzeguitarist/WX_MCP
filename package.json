@@ -1,0 +1,17 @@
+{
+  "name": "wx-memory",
+  "version": "1.0.0",
+  "description": "WeChat Memory MCP Server - 让 AI 读取你的数字记忆",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "setup": "bun run setup.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
