@@ -192,16 +192,17 @@ const tools: ToolConfig[] = [
   {
     name: "Claude Code",
     configure() {
-      const configPath = join(HOME, ".claude/settings.json");
-      let config: any = {};
-      if (existsSync(configPath)) {
-        config = JSON.parse(readFileSync(configPath, "utf-8"));
-      }
-      if (!config.mcpServers) config.mcpServers = {};
-      config.mcpServers["wx-memory"] = mcpConfig;
-      mkdirSync(join(HOME, ".claude"), { recursive: true });
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
-      printOk(`已写入: ${configPath}`);
+      // Claude Code stores user MCP servers in ~/.claude.json (via `claude mcp add`),
+      // not in ~/.claude/settings.json.
+      try {
+        execSync("claude mcp remove wx-memory -s user", { stdio: "ignore" });
+      } catch {}
+      const envArg = `WX_BACKUP_PATH=${finalBackupPath}`;
+      execSync(
+        `claude mcp add -s user wx-memory -e ${JSON.stringify(envArg)} -- bun run ${JSON.stringify(ENTRY_POINT)}`,
+        { stdio: "pipe" }
+      );
+      printOk("已注册到 Claude Code (user scope, ~/.claude.json)");
     },
   },
   {

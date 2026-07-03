@@ -106,9 +106,17 @@ bun run setup.ts
 }
 ```
 
-### Claude Code (`~/.claude/settings.json`)
+### Claude Code
 
-同上格式，添加到 `mcpServers` 字段中。
+Claude Code 的 MCP 配置在 `~/.claude.json`，不在 `settings.json`。推荐用 CLI 注册：
+
+```bash
+claude mcp add -s user wx-memory \
+  -e 'WX_BACKUP_PATH=/path/to/your/backup' \
+  -- bun run ~/.wx-memory/src/index.ts
+```
+
+验证：`claude mcp list` 应显示 `wx-memory` 为 Connected。
 
 ### Codex (`~/.codex/config.toml`)
 
