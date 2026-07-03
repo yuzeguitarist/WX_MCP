@@ -19,6 +19,81 @@ function isValidBackup(dir: string): boolean {
   return existsSync(join(dir, "Manifest.db")) && existsSync(join(dir, "Info.plist"));
 }
 
+interface WeChatUserCandidate {
+  userHash: string;
+  messageCount: number;
+  chatTableCount: number;
+}
+
+function countUserMessages(backupDir: string, userHash: string, msgDbPaths: string[]): Omit<WeChatUserCandidate, "userHash"> {
+  let messageCount = 0;
+  let chatTableCount = 0;
+
+  for (const dbPath of msgDbPaths) {
+    let db: Database | null = null;
+    try {
+      db = new Database(dbPath);
+      db.exec("PRAGMA query_only = ON");
+      const tables = db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Chat_%' AND name NOT LIKE 'ChatExt2_%'"
+        )
+        .all() as Array<{ name: string }>;
+
+      chatTableCount += tables.length;
+      for (const { name } of tables) {
+        try {
+          const row = db.query(`SELECT COUNT(*) as cnt FROM [${name}]`).get() as { cnt: number };
+          messageCount += row.cnt;
+        } catch {}
+      }
+    } catch {
+      // Skip unreadable databases
+    } finally {
+      db?.close();
+    }
+  }
+
+  return { messageCount, chatTableCount };
+}
+
+function pickWeChatUserHash(
+  db: Database,
+  backupDir: string,
+  userDirs: Array<{ dirName: string }>
+): string {
+  const override = process.env.WX_USER_HASH?.trim();
+  if (override && userDirs.some((d) => d.dirName === override)) {
+    return override;
+  }
+
+  let bestHash = userDirs[0].dirName;
+  let bestScore = -1;
+
+  for (const { dirName } of userDirs) {
+    const msgDbRows = db
+      .query(
+        `SELECT fileID FROM Files
+         WHERE domain = 'AppDomain-com.tencent.xin'
+           AND relativePath LIKE ?
+           AND relativePath NOT LIKE '%.material'
+         ORDER BY relativePath`
+      )
+      .all(`Documents/${dirName}/DB/message_%.sqlite`) as Array<{ fileID: string }>;
+
+    const msgDbPaths = msgDbRows.map((r) => join(backupDir, r.fileID.substring(0, 2), r.fileID));
+    const stats = countUserMessages(backupDir, dirName, msgDbPaths);
+    const score = stats.messageCount;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestHash = dirName;
+    }
+  }
+
+  return bestHash;
+}
+
 function findWeChatData(backupDir: string): BackupInfo | null {
   const manifestPath = join(backupDir, "Manifest.db");
   const db = new Database(manifestPath);
@@ -49,7 +124,7 @@ function findWeChatData(backupDir: string): BackupInfo | null {
 
     if (userDirs.length === 0) return null;
 
-    const userHash = userDirs[0].dirName;
+    const userHash = pickWeChatUserHash(db, backupDir, userDirs);
 
     const resolveFile = (relativePath: string): string => {
       const row = db

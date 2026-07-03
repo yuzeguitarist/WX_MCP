@@ -24,6 +24,8 @@ curl -fsSL https://raw.githubusercontent.com/yuzeguitarist/WX_MCP/main/install.s
 3. 安装依赖
 4. 启动配置向导：自动扫描 iPhone 备份 -> 选择要对接的 AI 工具 -> 写入配置
 
+若备份中存在多个微信账号目录，会自动选择**消息量最多**的那个。如需指定账号，可设置环境变量 `WX_USER_HASH`。
+
 无需手动启动服务。配置完成后，AI 工具调用时会自动拉起 MCP 进程。
 
 ---
